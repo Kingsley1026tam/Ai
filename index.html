@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Browser Game</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden; /* Prevents scrollbars */
+            background-color: #87ceeb; /* Sky blue background */
+        }
+        #info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            font-family: sans-serif;
+            font-size: 16px;
+            text-shadow: 1px 1px 2px black;
+            pointer-events: none;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="info">
+        <strong>Controls:</strong><br>
+        W, A, S, D - Move<br>
+        Space - Jump
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <script>
+        // 1. SET UP SCENE, CAMERA, AND RENDERER
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x87ceeb); // Sky blue
+        scene.fog = new THREE.Fog(0x87ceeb, 10, 50); // Add fog to blend the horizon
+
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // 2. CREATE LIGHTING
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(10, 20, 10);
+        scene.add(directionalLight);
+
+        // 3. CREATE THE PLAYER (Red Cube)
+        const playerGeometry = new THREE.BoxGeometry(1, 1, 1);
+        const playerMaterial = new THREE.MeshLambertMaterial({ color: 0xff0000 });
+        const player = new THREE.Mesh(playerGeometry, playerMaterial);
+        player.position.y = 0.5; // Rest on top of the ground
+        scene.add(player);
+
+        // 4. CREATE THE GROUND (Grid)
+        // A grid helps you actually see that you are moving
+        const gridHelper = new THREE.GridHelper(100, 100, 0x000000, 0xffffff);
+        scene.add(gridHelper);
+
+        const groundGeometry = new THREE.PlaneGeometry(100, 100);
+        const groundMaterial = new THREE.MeshLambertMaterial({ color: 0x228b22 }); // Forest Green
+        const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+        ground.rotation.x = -Math.PI / 2; // Rotate flat
+        ground.position.y = -0.01; // Slightly below grid to prevent visual glitching
+        scene.add(ground);
+
+        // 5. INPUT HANDLING
+        const keys = { w: false, a: false, s: false, d: false, space: false };
+
+        document.addEventListener('keydown', (event) => {
+            const key = event.key.toLowerCase();
+            if (keys.hasOwnProperty(key)) keys[key] = true;
+            if (event.code === 'Space') keys.space = true;
+        });
+
+        document.addEventListener('keyup', (event) => {
+            const key = event.key.toLowerCase();
+            if (keys.hasOwnProperty(key)) keys[key] = false;
+            if (event.code === 'Space') keys.space = false;
+        });
+
+        // 6. PHYSICS & MOVEMENT VARIABLES
+        const speed = 0.15;
+        let velocityY = 0;
+        const gravity = -0.015;
+        const jumpStrength = 0.35;
+        let isGrounded = true;
+
+        // 7. GAME LOOP
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // --- MOVEMENT ---
+            if (keys.w) player.position.z -= speed;
+            if (keys.s) player.position.z += speed;
+            if (keys.a) player.position.x -= speed;
+            if (keys.d) player.position.x += speed;
+
+            // --- JUMPING & GRAVITY ---
+            if (keys.space && isGrounded) {
+                velocityY = jumpStrength;
+                isGrounded = false;
+            }
+
+            // Apply gravity
+            velocityY += gravity;
+            player.position.y += velocityY;
+
+            // Floor collision (Cube is 1 unit tall, so center is at 0.5)
+            if (player.position.y <= 0.5) {
+                player.position.y = 0.5;
+                velocityY = 0;
+                isGrounded = true;
+            }
+
+            // --- CAMERA FOLLOW ---
+            // Position the camera behind and slightly above the player
+            camera.position.x = player.position.x;
+            camera.position.y = player.position.y + 3;
+            camera.position.z = player.position.z + 6;
+            
+            // Point the camera at the player
+            camera.lookAt(player.position);
+
+            // Render the scene
+            renderer.render(scene, camera);
+        }
+
+        // Handle window resizing
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Start the game
+        animate();
+    </script>
+</body>
+</html>
