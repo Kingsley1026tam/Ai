@@ -3,75 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>3D Game Launcher</title>
+    <title>3D Real Multiplayer Arena</title>
     <style>
         body, html {
             margin: 0; padding: 0; width: 100%; height: 100%;
-            overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #111; color: white; user-select: none; touch-action: none;
+            overflow: hidden; background-color: #87ceeb;
+            touch-action: none; user-select: none;
         }
-        
-        /* HOMEPAGE MENU STYLING */
-        #homepage {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            z-index: 200; transition: opacity 0.5s ease;
-        }
-        .menu-box {
-            background: rgba(0, 0, 0, 0.65); padding: 30px; border-radius: 16px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.3); text-align: center; width: 320px;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-        h1 { margin-top: 0; margin-bottom: 20px; font-size: 28px; letter-spacing: 2px; }
-        .form-group { margin-bottom: 20px; text-align: left; }
-        label { display: block; font-size: 12px; text-transform: uppercase; margin-bottom: 5px; color: #aaa; }
-        select, input[type="file"], .btn {
-            width: 100%; padding: 12px; border-radius: 8px; border: none; 
-            box-sizing: border-box; font-size: 14px; margin-top: 5px;
-        }
-        select { background: #333; color: white; }
-        
-        /* Custom Upload Styling */
-        .file-upload-wrapper {
-            background: #222; border: 2px dashed #444; border-radius: 8px;
-            padding: 15px; text-align: center; cursor: pointer; position: relative;
-        }
-        .file-upload-wrapper:hover { border-color: #00e5ff; }
-        .file-upload-wrapper input[type="file"] {
-            position: absolute; left: 0; top: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer;
-        }
-        #upload-status { font-size: 12px; margin-top: 5px; color: #00e5ff; }
-
-        .btn {
-            background: #0078ff; color: white; font-weight: bold; cursor: pointer;
-            transition: background 0.2s; margin-top: 10px; display: flex; align-items: center; justify-content: center;
-        }
-        .btn:hover { background: #0056b3; }
-        .btn-google { background: #db4437; }
-        .btn-google:hover { background: #c53929; }
-        .btn-play { background: #4caf50; font-size: 18px; height: 50px; }
-        .btn-play:hover { background: #388e3c; }
-        .btn-play:disabled { background: #555; cursor: not-allowed; opacity: 0.5; }
-
-        #user-profile {
-            display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.1);
-            padding: 10px; border-radius: 8px; margin-bottom: 15px; display: none;
-        }
-        #user-avatar { width: 35px; height: 35px; border-radius: 50%; background: #fff; }
-
-        /* GAME UI STYLING */
-        #game-container { width: 100%; height: 100%; display: none; position: relative; }
         #info {
             position: absolute; top: 10px; left: 10px; color: white;
-            font-size: 13px; text-shadow: 1px 1px 2px black; pointer-events: none; z-index: 100;
+            font-family: sans-serif; font-size: 13px; text-shadow: 1px 1px 2px black;
+            pointer-events: none; z-index: 100; line-height: 1.4;
         }
+        #network-status {
+            position: absolute; top: 10px; right: 10px;
+            background: rgba(0, 0, 0, 0.6); color: #00ffca;
+            padding: 8px 14px; border-radius: 6px; font-family: sans-serif;
+            font-size: 13px; font-weight: bold; z-index: 100;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        /* Mobile Control Surfaces */
+        #mobile-ui { display: none; }
         .mobile-btn {
             background: rgba(255, 255, 255, 0.3); border: 2px solid rgba(255, 255, 255, 0.5);
             border-radius: 50%; color: white; font-family: sans-serif; font-weight: bold;
             display: flex; align-items: center; justify-content: center; z-index: 10; position: absolute;
         }
         .mobile-btn:active { background: rgba(255, 255, 255, 0.6); }
+        
         #joystick-zone {
             position: absolute; bottom: 40px; left: 40px; width: 120px; height: 120px;
             background: rgba(255, 255, 255, 0.2); border-radius: 50%;
@@ -81,9 +40,11 @@
             position: absolute; top: 30px; left: 30px; width: 60px; height: 60px;
             background: rgba(255, 255, 255, 0.7); border-radius: 50%; pointer-events: none;
         }
+        
         #jump-btn { bottom: 60px; right: 40px; width: 80px; height: 80px; }
-        #zoom-in-btn { top: 20px; right: 20px; width: 45px; height: 45px; font-size: 24px;}
-        #zoom-out-btn { top: 80px; right: 20px; width: 45px; height: 45px; font-size: 24px;}
+        #zoom-in-btn { top: 60px; right: 10px; width: 45px; height: 45px; font-size: 24px;}
+        #zoom-out-btn { top: 115px; right: 10px; width: 45px; height: 45px; font-size: 24px;}
+
         #crosshair {
             position: absolute; top: 50%; left: 50%; width: 10px; height: 10px;
             background: white; border-radius: 50%; transform: translate(-50%, -50%);
@@ -93,318 +54,333 @@
 </head>
 <body oncontextmenu="return false;">
 
-    <div id="homepage">
-        <div class="menu-box">
-            <h1>3D WORLD</h1>
-            
-            <div class="form-group">
-                <label>Account Status</label>
-                <div id="user-profile">
-                    <img id="user-avatar" src="" alt="Avatar">
-                    <span id="user-name">Player</span>
-                </div>
-                <button class="btn btn-google" id="google-login-btn">Sign in with Google</button>
-            </div>
-
-            <div class="form-group">
-                <label>Select Server</label>
-                <select id="serverSelect">
-                    <option value="us-east">US East (Ping: 42ms)</option>
-                    <option value="eu-west">Europe West (Ping: 110ms)</option>
-                    <option value="asia-sea">Asia Pacific (Ping: 220ms)</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label>Custom Character Mesh</label>
-                <div class="file-upload-wrapper">
-                    <span id="upload-prompt">Choose .glb file</span>
-                    <input type="file" id="modelUpload" accept=".glb">
-                </div>
-                <div id="upload-status">Default Red Cube Selected</div>
-            </div>
-
-            <button class="btn btn-play" id="playBtn">CONNECT & PLAY</button>
-        </div>
+    <div id="info">
+        <strong>Controls:</strong><br>
+        W,A,S,D / Joystick - Move Character<br>
+        Space / Jump Button - Jump<br>
+        Right-Click + Drag / Touch Swipe - Look Around<br>
+        Scroll Wheel / Keypad [-][+] - Zoom Camera
     </div>
 
-    <div id="game-container">
-        <div id="info">
-            W,A,S,D - Move | Space - Jump<br>
-            Hold Right-Click - Turn Camera<br>
-            Scroll / Touch Pinch - Zoom Camera
-        </div>
-        <div id="crosshair"></div>
-        <div id="mobile-ui" style="display:none;">
-            <div id="joystick-zone"><div id="joystick-knob"></div></div>
-            <div id="jump-btn" class="mobile-btn">JUMP</div>
-            <div id="zoom-in-btn" class="mobile-btn">+</div>
-            <div id="zoom-out-btn" class="mobile-btn">-</div>
-        </div>
+    <div id="network-status">Network: Offline</div>
+    <div id="crosshair"></div>
+
+    <div id="mobile-ui">
+        <div id="joystick-zone"><div id="joystick-knob"></div></div>
+        <div id="jump-btn" class="mobile-btn">JUMP</div>
+        <div id="zoom-in-btn" class="mobile-btn">+</div>
+        <div id="zoom-out-btn" class="mobile-btn">-</div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/4.3.7/mqtt.min.js"></script>
 
     <script>
-        // --- LAUNCHER LOGIC & DATA CHANNELS ---
-        let selectedServer = "us-east";
-        let userAccount = { name: "Guest Box", avatar: "" };
-        let loadedCharacterModel = null; 
+        // 1. SCENE SETUP
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x87ceeb);
+        scene.fog = new THREE.Fog(0x87ceeb, 10, 60);
 
-        // Simulated Google Sign-In Identity Handler
-        document.getElementById('google-login-btn').addEventListener('click', () => {
-            // Note: True runtime implementation requires your custom Firebase / Google OAuth API Keys Client ID config.
-            userAccount.name = "Google User_" + Math.floor(1000 + Math.random() * 9000);
-            userAccount.avatar = "https://api.dicebear.com/7.x/bottts/svg?seed=" + userAccount.name;
-            
-            document.getElementById('google-login-btn').style.display = 'none';
-            document.getElementById('user-profile').style.display = 'flex';
-            document.getElementById('user-avatar').src = userAccount.avatar;
-            document.getElementById('user-name').innerText = userAccount.name;
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.outputEncoding = THREE.sRGBEncoding; 
+        document.body.appendChild(renderer.domElement);
+
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
+        scene.add(ambientLight);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+        directionalLight.position.set(15, 30, 15);
+        scene.add(directionalLight);
+
+        // 2. LOCAL PLAYER REPRESENTATION
+        const player = new THREE.Group();
+        player.position.set(Math.random() * 6 - 3, 0.5, Math.random() * 6 - 3);
+        scene.add(player);
+
+        const localGeom = new THREE.BoxGeometry(1, 1, 1);
+        const localMat = new THREE.MeshLambertMaterial({ color: 0xff0000 });
+        player.add(new THREE.Mesh(localGeom, localMat));
+
+        // 3. TERRAIN ENVIRONMENT
+        const gridHelper = new THREE.GridHelper(100, 50, 0x000000, 0xffffff);
+        scene.add(gridHelper);
+        const groundGeometry = new THREE.PlaneGeometry(100, 100);
+        const groundMaterial = new THREE.MeshLambertMaterial({ color: 0x3b7a57 });
+        const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+        ground.rotation.x = -Math.PI / 2;
+        ground.position.y = -0.01;
+        scene.add(ground);
+
+        // 4. REAL-TIME MULTIPLAYER SYSTEM (MQTT WebSockets)
+        const myId = "player_" + Math.random().toString(36).substring(2, 9);
+        const remotePlayers = new Map(); 
+        
+        const statusEl = document.getElementById('network-status');
+        statusEl.innerText = "Connecting to Network...";
+
+        // Connecting via a public secure broker endpoint
+        const client = mqtt.connect('wss://broker.emqx.io:8084/mqtt', {
+            clientId: myId,
+            clean: true,
+            connectTimeout: 4000
         });
 
-        // Safe Engine Model Upload Wrapper
-        const gltfLoader = new THREE.GLTFLoader();
-        document.getElementById('modelUpload').addEventListener('change', function(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            document.getElementById('upload-prompt').innerText = "Analyzing file...";
-            const url = URL.createObjectURL(file);
-
-            gltfLoader.load(url, 
-                function(gltf) {
-                    // Safe cleanup reference configuration step
-                    const importedModel = gltf.scene;
-
-                    // Robust Safe Re-centering & Bounds Scaling
-                    const box = new THREE.Box3().setFromObject(importedModel);
-                    const size = box.getSize(new THREE.Vector3());
-                    const center = box.getCenter(new THREE.Vector3());
-                    const maxAxis = Math.max(size.x, size.y, size.z);
-
-                    if (maxAxis > 0) {
-                        importedModel.scale.multiplyScalar(1.0 / maxAxis);
-                    }
-
-                    // Process bounding measurements off localized scale transforms
-                    const adjustedBox = new THREE.Box3().setFromObject(importedModel);
-                    const adjustedCenter = adjustedBox.getCenter(new THREE.Vector3());
-
-                    importedModel.position.x -= adjustedCenter.x;
-                    importedModel.position.z -= adjustedCenter.z;
-                    importedModel.position.y -= adjustedBox.min.y; 
-                    importedModel.position.y -= 0.5; // Matches tracking controller offsets
-
-                    importedModel.rotation.y = Math.PI; // Face forward direction standard
-
-                    loadedCharacterModel = importedModel; 
-                    document.getElementById('upload-prompt').innerText = "Change character Mesh";
-                    document.getElementById('upload-status').innerText = "✓ " + file.name + " Ready";
-                    document.getElementById('upload-status').style.color = "#4caf50";
-                },
-                undefined,
-                function(error) {
-                    console.error(error);
-                    document.getElementById('upload-prompt').innerText = "Upload Failed!";
-                    document.getElementById('upload-status').innerText = "Error reading model file data formatting structures.";
-                    document.getElementById('upload-status').style.color = "#db4437";
-                    loadedCharacterModel = null;
-                }
-            );
+        client.on('connect', () => {
+            statusEl.innerText = "Online (ID: " + myId.split('_')[1] + ")";
+            statusEl.style.color = "#00ffca";
+            // Subscribe to all positions in the shared workspace topic
+            client.subscribe('game/3darena/positions/#', { qos: 0 });
         });
 
-        // Trigger Interface Switch to active 3D Viewport Execution environment
-        document.getElementById('playBtn').addEventListener('click', () => {
-            selectedServer = document.getElementById('serverSelect').value;
-            console.log("Handshaking Connection pipeline endpoint directly with: " + selectedServer);
-            
-            document.getElementById('homepage').style.opacity = 0;
-            setTimeout(() => {
-                document.getElementById('homepage').style.display = 'none';
-                document.getElementById('game-container').style.display = 'block';
-                initGameEngine();
-            }, 500);
+        client.on('error', () => {
+            statusEl.innerText = "Network Error";
+            statusEl.style.color = "#ff4444";
         });
 
-        // --- CORE GAME ENGINE ENVIRONMENT ---
-        function initGameEngine() {
-            const scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x87ceeb);
-            scene.fog = new THREE.Fog(0x87ceeb, 10, 50);
+        client.on('message', (topic, message) => {
+            const senderId = topic.split('/').pop();
+            if (senderId === myId) return; 
 
-            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            const renderer = new THREE.WebGLRenderer({ antialias: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.outputEncoding = THREE.sRGBEncoding;
-            document.getElementById('game-container').appendChild(renderer.domElement);
-
-            // Lighting Setup
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
-            scene.add(ambientLight);
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-            directionalLight.position.set(10, 20, 10);
-            scene.add(directionalLight);
-
-            // Player Setup
-            const player = new THREE.Group();
-            player.position.y = 0.5;
-            scene.add(player);
-
-            if (loadedCharacterModel) {
-                player.add(loadedCharacterModel);
-            } else {
-                const defaultGeom = new THREE.BoxGeometry(1, 1, 1);
-                const defaultMat = new THREE.MeshLambertMaterial({ color: 0xff0000 });
-                player.add(new THREE.Mesh(defaultGeom, defaultMat));
-            }
-
-            // Environment Terrain
-            const gridHelper = new THREE.GridHelper(100, 100, 0x000000, 0xffffff);
-            scene.add(gridHelper);
-            const groundGeometry = new THREE.PlaneGeometry(100, 100);
-            const groundMaterial = new THREE.MeshLambertMaterial({ color: 0x228b22 });
-            const ground = new THREE.Mesh(groundGeometry, groundMaterial);
-            ground.rotation.x = -Math.PI / 2; ground.position.y = -0.01;
-            scene.add(ground);
-
-            // Global Control states
-            let cameraMode = 3; let yaw = 0; let pitch = -0.2; const sensitivity = 0.004;
-            let isRightMouseDown = false; let targetZoom = 5; let actualZoom = 5; const maxZoom = 15;
-            let inputX = 0; let inputY = 0; const keys = { w: false, a: false, s: false, d: false };
-            const speed = 0.15; let velocityY = 0; const gravity = -0.015; const jumpStrength = 0.35; let isGrounded = true;
-
-            // Input Event Mapping
-            document.addEventListener('keydown', (e) => {
-                if (keys.hasOwnProperty(e.key.toLowerCase())) keys[e.key.toLowerCase()] = true;
-                if (e.code === 'Space' && isGrounded) { velocityY = jumpStrength; isGrounded = false; }
-                if (e.key === '-' || e.key === '_') targetZoom = Math.min(maxZoom, targetZoom + 1);
-                if (e.key === '=' || e.key === '+') targetZoom = Math.max(0, targetZoom - 1);
-            });
-            document.addEventListener('keyup', (e) => {
-                if (keys.hasOwnProperty(e.key.toLowerCase())) keys[e.key.toLowerCase()] = false;
-            });
-            document.addEventListener('mousedown', (e) => {
-                if (e.button === 2) isRightMouseDown = true;
-                if (cameraMode === 1 && e.target === renderer.domElement) document.body.requestPointerLock();
-            });
-            document.addEventListener('mouseup', (e) => { if (e.button === 2) isRightMouseDown = false; });
-            document.addEventListener('mousemove', (e) => {
-                if (document.pointerLockElement === document.body || isRightMouseDown) {
-                    yaw -= e.movementX * sensitivity; pitch -= e.movementY * sensitivity;
-                    pitch = Math.max(-Math.PI/2 + 0.1, Math.min(Math.PI/2 - 0.1, pitch));
-                }
-            });
-            document.addEventListener('wheel', (e) => {
-                targetZoom = Math.max(0, Math.min(maxZoom, targetZoom + (e.deltaY > 0 ? 1 : -1)));
-            });
-
-            // Handle Mobile Specific Touch Input Layout Triggers
-            if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
-                document.getElementById('mobile-ui').style.display = 'block';
-            }
-            const activeTouches = {}; let initialPinchDistance = null;
-            const joystickZone = document.getElementById('joystick-zone'); const joystickKnob = document.getElementById('joystick-knob');
-            let joystickCenter = { x: 0, y: 0 };
-
-            document.addEventListener('touchstart', (e) => {
-                for (let i = 0; i < e.changedTouches.length; i++) {
-                    const t = e.changedTouches[i]; activeTouches[t.identifier] = { type: 'camera', lastX: t.clientX, lastY: t.clientY };
-                    if (t.target.id === 'jump-btn') { if (isGrounded) { velocityY = jumpStrength; isGrounded = false; } activeTouches[t.identifier].type = 'ui'; }
-                    else if (t.target.id === 'zoom-in-btn') { targetZoom = Math.max(0, targetZoom - 2); activeTouches[t.identifier].type = 'ui'; }
-                    else if (t.target.id === 'zoom-out-btn') { targetZoom = Math.min(maxZoom, targetZoom + 2); activeTouches[t.identifier].type = 'ui'; }
-                    else if (t.target.id === 'joystick-zone' || t.target.id === 'joystick-knob') {
-                        activeTouches[t.identifier].type = 'joystick'; const rect = joystickZone.getBoundingClientRect();
-                        joystickCenter = { x: rect.left + rect.width/2, y: rect.top + rect.height/2 }; updateJoystick(t.clientX, t.clientY);
-                    }
-                }
-            });
-            document.addEventListener('touchmove', (e) => {
-                if (e.touches.length === 2) {
-                    const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
-                    if (initialPinchDistance === null) initialPinchDistance = dist;
-                    else { targetZoom = Math.max(0, Math.min(maxZoom, targetZoom - (dist - initialPinchDistance) * 0.05)); initialPinchDistance = dist; }
-                } else initialPinchDistance = null;
-
-                for (let i = 0; i < e.changedTouches.length; i++) {
-                    const t = e.changedTouches[i]; const td = activeTouches[t.identifier]; if (!td) continue;
-                    if (td.type === 'joystick') updateJoystick(t.clientX, t.clientY);
-                    else if (td.type === 'camera' && e.touches.length < 2) {
-                        yaw -= (t.clientX - td.lastX) * sensitivity * 1.5; pitch -= (t.clientY - td.lastY) * sensitivity * 1.5;
-                        pitch = Math.max(-Math.PI/2 + 0.1, Math.min(Math.PI/2 - 0.1, pitch)); td.lastX = t.clientX; td.lastY = t.clientY;
-                    }
-                }
-            });
-            document.addEventListener('touchend', (e) => {
-                for (let i = 0; i < e.changedTouches.length; i++) {
-                    const t = e.changedTouches[i];
-                    if (activeTouches[t.identifier] && activeTouches[t.identifier].type === 'joystick') {
-                        inputX = 0; inputY = 0; joystickKnob.style.transform = `translate(0px, 0px)`;
-                    }
-                    delete activeTouches[t.identifier];
-                }
-            });
-
-            function updateJoystick(clientX, clientY) {
-                const maxRadius = 40; let dx = clientX - joystickCenter.x, dy = clientY - joystickCenter.y; const dist = Math.hypot(dx, dy);
-                if (dist > maxRadius) { dx = (dx/dist)*maxRadius; dy = (dy/dist)*maxRadius; }
-                joystickKnob.style.transform = `translate(${dx}px, ${dy}px)`; inputX = dx / maxRadius; inputY = dy / maxRadius;
-            }
-
-            // Run-loop Execution Loop
-            function animate() {
-                requestAnimationFrame(animate);
-
-                // Velocity Computations
-                let moveForward = (keys.w ? 1 : 0) - (keys.s ? 1 : 0) - inputY;
-                let moveRight = (keys.d ? 1 : 0) - (keys.a ? 1 : 0) + inputX;
-                const length = Math.hypot(moveRight, moveForward);
+            try {
+                const data = JSON.parse(message.toString());
                 
-                if (length > 0.05) {
-                    const normRight = moveRight / length; const normForward = moveForward / length;
-                    const forwardDirX = -Math.sin(yaw), forwardDirZ = -Math.cos(yaw);
-                    const rightDirX = Math.cos(yaw), rightDirZ = -Math.sin(yaw);
+                if (!remotePlayers.has(senderId)) {
+                    // Instantly generate user representation for new arrivals
+                    const geom = new THREE.BoxGeometry(1, 1, 1);
+                    const mat = new THREE.MeshLambertMaterial({ color: 0x00ff7f }); // Green box for other players
+                    const mesh = new THREE.Mesh(geom, mat);
+                    scene.add(mesh);
 
-                    player.position.x += (forwardDirX * normForward + rightDirX * normRight) * speed;
-                    player.position.z += (forwardDirZ * normForward + rightDirZ * normRight) * speed;
-
-                    const targetAngle = yaw + Math.atan2(-normRight, normForward);
-                    const targetRotation = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), targetAngle);
-                    player.quaternion.slerp(targetRotation, 0.15);
-                }
-
-                // Gravity physics loop
-                if (!isGrounded) {
-                    velocityY += gravity; player.position.y += velocityY;
-                    if (player.position.y <= 0.5) { player.position.y = 0.5; velocityY = 0; isGrounded = true; }
-                }
-
-                // Camera and System Tracking Interp Lookups
-                actualZoom += (targetZoom - actualZoom) * 0.1;
-                if (actualZoom < 0.5) { cameraMode = 1; document.getElementById('crosshair').style.display = 'block'; } 
-                else { cameraMode = 3; document.getElementById('crosshair').style.display = 'none'; }
-
-                const lookDirX = -Math.sin(yaw) * Math.cos(pitch); const lookDirY = Math.sin(pitch); const lookDirZ = -Math.cos(yaw) * Math.cos(pitch);
-
-                if (cameraMode === 1) {
-                    player.visible = false; camera.position.set(player.position.x, player.position.y + 0.3, player.position.z);
-                    camera.lookAt(camera.position.x + lookDirX, camera.position.y + lookDirY, camera.position.z + lookDirZ);
+                    remotePlayers.set(senderId, {
+                        mesh: mesh,
+                        targetPos: new THREE.Vector3(data.x, data.y, data.z),
+                        targetQuat: new THREE.Quaternion(data.qx, data.qy, data.qz, data.qw),
+                        lastUpdate: Date.now()
+                    });
                 } else {
-                    player.visible = true;
-                    camera.position.set(player.position.x - lookDirX * actualZoom, player.position.y + 1 - lookDirY * actualZoom, player.position.z - lookDirZ * actualZoom);
-                    camera.lookAt(player.position.x, player.position.y + 1, player.position.z);
+                    const pData = remotePlayers.get(senderId);
+                    pData.targetPos.set(data.x, data.y, data.z);
+                    pData.targetQuat.set(data.qx, data.qy, data.qz, data.qw);
+                    pData.lastUpdate = Date.now();
                 }
-                renderer.render(scene, camera);
+            } catch (err) { console.error("Malformed position packet parsing dropped."); }
+        });
+
+        // 5. RUNTIME STATE MATRICES
+        let cameraMode = 3; 
+        let yaw = 0; let pitch = -0.2; 
+        const sensitivity = 0.004;
+        let isRightMouseDown = false;
+        
+        let targetZoom = 5; let actualZoom = 5; const maxZoom = 15;
+        let inputX = 0; let inputY = 0;
+        const keys = { w: false, a: false, s: false, d: false };
+
+        const speed = 0.15; let velocityY = 0; const gravity = -0.015; const jumpStrength = 0.35; let isGrounded = true;
+        let lastNetworkTransmission = 0;
+
+        // 6. DESKTOP PERIPHERAL INPUTS
+        document.addEventListener('keydown', (e) => {
+            if (keys.hasOwnProperty(e.key.toLowerCase())) keys[e.key.toLowerCase()] = true;
+            if (e.code === 'Space' && isGrounded) { velocityY = jumpStrength; isGrounded = false; }
+            if (e.key === '-' || e.key === '_') targetZoom = Math.min(maxZoom, targetZoom + 1);
+            if (e.key === '=' || e.key === '+') targetZoom = Math.max(0, targetZoom - 1);
+        });
+        document.addEventListener('keyup', (e) => {
+            if (keys.hasOwnProperty(e.key.toLowerCase())) keys[e.key.toLowerCase()] = false;
+        });
+        document.addEventListener('mousedown', (e) => {
+            if (e.button === 2) isRightMouseDown = true;
+            if (cameraMode === 1 && e.target === renderer.domElement) document.body.requestPointerLock();
+        });
+        document.addEventListener('mouseup', (e) => { if (e.button === 2) isRightMouseDown = false; });
+        document.addEventListener('mousemove', (e) => {
+            if (document.pointerLockElement === document.body || isRightMouseDown) {
+                yaw -= e.movementX * sensitivity; pitch -= e.movementY * sensitivity;
+                pitch = Math.max(-Math.PI/2 + 0.1, Math.min(Math.PI/2 - 0.1, pitch));
+            }
+        });
+        document.addEventListener('wheel', (e) => {
+            targetZoom = Math.max(0, Math.min(maxZoom, targetZoom + (e.deltaY > 0 ? 1 : -1)));
+        });
+
+        // 7. ADVANCED MOBILE TOUCH PROCESSING (FIXED PINCH-ZOOM CONFLICT)
+        if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+            document.getElementById('mobile-ui').style.display = 'block';
+            document.getElementById('info').style.display = 'none';
+        }
+
+        const activeTouches = {};
+        let initialPinchDistance = null;
+        const joystickZone = document.getElementById('joystick-zone');
+        const joystickKnob = document.getElementById('joystick-knob');
+        let joystickCenter = { x: 0, y: 0 };
+
+        document.addEventListener('touchstart', (e) => {
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                const t = e.changedTouches[i];
+                let type = 'camera'; // Defaults to background viewport control
+
+                if (t.target.id === 'jump-btn') {
+                    type = 'ui';
+                    if (isGrounded) { velocityY = jumpStrength; isGrounded = false; }
+                } else if (t.target.id === 'zoom-in-btn') {
+                    type = 'ui'; targetZoom = Math.max(0, targetZoom - 1.5);
+                } else if (t.target.id === 'zoom-out-btn') {
+                    type = 'ui'; targetZoom = Math.min(maxZoom, targetZoom + 1.5);
+                } else if (t.target.id === 'joystick-zone' || t.target.id === 'joystick-knob') {
+                    type = 'joystick';
+                    const rect = joystickZone.getBoundingClientRect();
+                    joystickCenter = { x: rect.left + rect.width/2, y: rect.top + rect.height/2 };
+                    updateJoystick(t.clientX, t.clientY);
+                }
+
+                activeTouches[t.identifier] = { type: type, lastX: t.clientX, lastY: t.clientY };
+            }
+        }, { passive: false });
+
+        document.addEventListener('touchmove', (e) => {
+            let cameraTouches = [];
+
+            // Sort through active screenspace contacts to protect joystick interaction vectors
+            for (let i = 0; i < e.touches.length; i++) {
+                const t = e.touches[i];
+                const td = activeTouches[t.identifier];
+                if (td) {
+                    if (td.type === 'joystick') {
+                        updateJoystick(t.clientX, t.clientY);
+                    } else if (td.type === 'camera') {
+                        cameraTouches.push(t);
+                    }
+                }
             }
 
-            window.addEventListener('resize', () => {
-                camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix();
-                renderer.setSize(window.innerWidth, window.innerHeight);
+            // CRITICAL FIX: Only evaluate zoom parameters if EXACTLY 2 camera fingers are down
+            if (cameraTouches.length === 2) {
+                const dist = Math.hypot(cameraTouches[0].clientX - cameraTouches[1].clientX, cameraTouches[0].clientY - cameraTouches[1].clientY);
+                if (initialPinchDistance === null) {
+                    initialPinchDistance = dist;
+                } else {
+                    targetZoom = Math.max(0, Math.min(maxZoom, targetZoom - (dist - initialPinchDistance) * 0.04));
+                    initialPinchDistance = dist;
+                }
+            } else {
+                initialPinchDistance = null;
+
+                // Only perform scene rotation transforms if a singular finger is mapping camera drag parameters
+                if (cameraTouches.length === 1) {
+                    const t = cameraTouches[0];
+                    for (let i = 0; i < e.changedTouches.length; i++) {
+                        if (e.changedTouches[i].identifier === t.identifier) {
+                            const td = activeTouches[t.identifier];
+                            yaw -= (t.clientX - td.lastX) * sensitivity * 1.5;
+                            pitch -= (t.clientY - td.lastY) * sensitivity * 1.5;
+                            pitch = Math.max(-Math.PI/2 + 0.1, Math.min(Math.PI/2 - 0.1, pitch));
+                            td.lastX = t.clientX; td.lastY = t.clientY;
+                        }
+                    }
+                }
+            }
+        }, { passive: false });
+
+        document.addEventListener('touchend', (e) => {
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                const t = e.changedTouches[i];
+                if (activeTouches[t.identifier] && activeTouches[t.identifier].type === 'joystick') {
+                    inputX = 0; inputY = 0; joystickKnob.style.transform = `translate(0px, 0px)`;
+                }
+                delete activeTouches[t.identifier];
+            }
+            initialPinchDistance = null; // Clear matrix references instantly on breaks
+        });
+
+        function updateJoystick(clientX, clientY) {
+            const maxRadius = 40;
+            let dx = clientX - joystickCenter.x, dy = clientY - joystickCenter.y;
+            const dist = Math.hypot(dx, dy);
+            if (dist > maxRadius) { dx = (dx/dist)*maxRadius; dy = (dy/dist)*maxRadius; }
+            joystickKnob.style.transform = `translate(${dx}px, ${dy}px)`;
+            inputX = dx / maxRadius; inputY = dy / maxRadius;
+        }
+
+        // 8. ANIMATION LOOP
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Compute Directions
+            let moveForward = (keys.w ? 1 : 0) - (keys.s ? 1 : 0) - inputY;
+            let moveRight = (keys.d ? 1 : 0) - (keys.a ? 1 : 0) + inputX;
+            const length = Math.hypot(moveRight, moveForward);
+            
+            if (length > 0.05) {
+                const normRight = moveRight / length; const normForward = moveForward / length;
+                const forwardDirX = -Math.sin(yaw), forwardDirZ = -Math.cos(yaw);
+                const rightDirX = Math.cos(yaw), rightDirZ = -Math.sin(yaw);
+
+                player.position.x += (forwardDirX * normForward + rightDirX * normRight) * speed;
+                player.position.z += (forwardDirZ * normForward + rightDirZ * normRight) * speed;
+
+                const targetAngle = yaw + Math.atan2(-normRight, normForward);
+                const targetRotation = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), targetAngle);
+                player.quaternion.slerp(targetRotation, 0.18);
+            }
+
+            // Ground/Gravity calculations
+            if (!isGrounded) {
+                velocityY += gravity; player.position.y += velocityY;
+                if (player.position.y <= 0.5) { player.position.y = 0.5; velocityY = 0; isGrounded = true; }
+            }
+
+            // Smooth Interpolation Camera Zoom Bounds logic
+            actualZoom += (targetZoom - actualZoom) * 0.1;
+            if (actualZoom < 0.5) { cameraMode = 1; document.getElementById('crosshair').style.display = 'block'; } 
+            else { cameraMode = 3; document.getElementById('crosshair').style.display = 'none'; }
+
+            const lookDirX = -Math.sin(yaw) * Math.cos(pitch); const lookDirY = Math.sin(pitch); const lookDirZ = -Math.cos(yaw) * Math.cos(pitch);
+
+            if (cameraMode === 1) {
+                player.visible = false; camera.position.set(player.position.x, player.position.y + 0.3, player.position.z);
+                camera.lookAt(camera.position.x + lookDirX, camera.position.y + lookDirY, camera.position.z + lookDirZ);
+            } else {
+                player.visible = true;
+                camera.position.set(player.position.x - lookDirX * actualZoom, player.position.y + 1 - lookDirY * actualZoom, player.position.z - lookDirZ * actualZoom);
+                camera.lookAt(player.position.x, player.position.y + 1, player.position.z);
+            }
+
+            // Network Loop Broadcasting (Throttled to 20 ticks per second)
+            if (Date.now() - lastNetworkTransmission > 50) {
+                if (client && client.connected) {
+                    client.publish(`game/3darena/positions/${myId}`, JSON.stringify({
+                        x: player.position.x, y: player.position.y, z: player.position.z,
+                        qx: player.quaternion.x, qy: player.quaternion.y, qz: player.quaternion.z, qw: player.quaternion.w
+                    }), { qos: 0, retain: false });
+                }
+                lastNetworkTransmission = Date.now();
+            }
+
+            // Smoothly render and slide remote players to their true server target coordinates
+            remotePlayers.forEach((pData, id) => {
+                if (Date.now() - pData.lastUpdate > 4000) { // Despawn disconnected players (4 sec timeout)
+                    scene.remove(pData.mesh);
+                    pData.mesh.geometry.dispose();
+                    pData.mesh.material.dispose();
+                    remotePlayers.delete(id);
+                } else {
+                    pData.mesh.position.lerp(pData.targetPos, 0.2);
+                    pData.mesh.quaternion.slerp(pData.targetQuat, 0.2);
+                }
             });
 
-            animate();
+            renderer.render(scene, camera);
         }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        animate();
     </script>
 </body>
 </html>
