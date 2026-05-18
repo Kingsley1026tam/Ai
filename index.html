@@ -2,13 +2,15 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Browser Game</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Advanced 3D Game</title>
     <style>
         body {
             margin: 0;
-            overflow: hidden; /* Prevents scrollbars */
-            background-color: #87ceeb; /* Sky blue background */
+            overflow: hidden;
+            background-color: #87ceeb;
+            touch-action: none; /* Prevents default mobile browser zooming/scrolling */
+            user-select: none; /* Prevents text selection while dragging */
         }
         #info {
             position: absolute;
@@ -16,132 +18,377 @@
             left: 10px;
             color: white;
             font-family: sans-serif;
-            font-size: 16px;
+            font-size: 14px;
             text-shadow: 1px 1px 2px black;
             pointer-events: none;
             z-index: 100;
         }
+        /* Mobile UI Elements */
+        #mobile-ui {
+            display: none; /* Hidden on desktop by default */
+        }
+        #joystick-zone {
+            position: absolute;
+            bottom: 40px;
+            left: 40px;
+            width: 120px;
+            height: 120px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            touch-action: none;
+            z-index: 10;
+        }
+        #joystick-knob {
+            position: absolute;
+            top: 30px; /* Center (120/2 - 60/2) */
+            left: 30px;
+            width: 60px;
+            height: 60px;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 50%;
+            pointer-events: none; /* Let events pass to the zone */
+        }
+        #jump-btn {
+            position: absolute;
+            bottom: 60px;
+            right: 40px;
+            width: 80px;
+            height: 80px;
+            background: rgba(255, 255, 255, 0.3);
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            color: white;
+            font-family: sans-serif;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+        #jump-btn:active {
+            background: rgba(255, 255, 255, 0.6);
+        }
+        #crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 10px;
+            height: 10px;
+            background: white;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            display: none; /* Only visible in 1st person */
+            pointer-events: none;
+            z-index: 50;
+        }
     </style>
 </head>
-<body>
+<body oncontextmenu="return false;"> <div id="info">
+        <strong>Desktop Controls:</strong><br>
+        W,A,S,D - Move | Space - Jump<br>
+        Hold Right-Click - Look around (3rd Person)<br>
+        Scroll Mouse Wheel - Switch 1st/3rd Person<br>
+        <em>(In 1st person, click screen to lock mouse)</em>
+    </div>
 
-    <div id="info">
-        <strong>Controls:</strong><br>
-        W, A, S, D - Move<br>
-        Space - Jump
+    <div id="crosshair"></div>
+
+    <div id="mobile-ui">
+        <div id="joystick-zone"><div id="joystick-knob"></div></div>
+        <div id="jump-btn">JUMP</div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
     <script>
-        // 1. SET UP SCENE, CAMERA, AND RENDERER
+        // 1. SETUP SCENE
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x87ceeb); // Sky blue
-        scene.fog = new THREE.Fog(0x87ceeb, 10, 50); // Add fog to blend the horizon
+        scene.background = new THREE.Color(0x87ceeb);
+        scene.fog = new THREE.Fog(0x87ceeb, 10, 50);
 
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
-        // 2. CREATE LIGHTING
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
         scene.add(ambientLight);
-
         const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
         directionalLight.position.set(10, 20, 10);
         scene.add(directionalLight);
 
-        // 3. CREATE THE PLAYER (Red Cube)
+        // 2. CREATE PLAYER & WORLD
         const playerGeometry = new THREE.BoxGeometry(1, 1, 1);
         const playerMaterial = new THREE.MeshLambertMaterial({ color: 0xff0000 });
         const player = new THREE.Mesh(playerGeometry, playerMaterial);
-        player.position.y = 0.5; // Rest on top of the ground
+        player.position.y = 0.5;
         scene.add(player);
 
-        // 4. CREATE THE GROUND (Grid)
-        // A grid helps you actually see that you are moving
         const gridHelper = new THREE.GridHelper(100, 100, 0x000000, 0xffffff);
         scene.add(gridHelper);
-
         const groundGeometry = new THREE.PlaneGeometry(100, 100);
-        const groundMaterial = new THREE.MeshLambertMaterial({ color: 0x228b22 }); // Forest Green
+        const groundMaterial = new THREE.MeshLambertMaterial({ color: 0x228b22 });
         const ground = new THREE.Mesh(groundGeometry, groundMaterial);
-        ground.rotation.x = -Math.PI / 2; // Rotate flat
-        ground.position.y = -0.01; // Slightly below grid to prevent visual glitching
+        ground.rotation.x = -Math.PI / 2;
+        ground.position.y = -0.01;
         scene.add(ground);
 
-        // 5. INPUT HANDLING
-        const keys = { w: false, a: false, s: false, d: false, space: false };
+        // 3. STATE VARIABLES
+        let cameraMode = 3; // 1 = First Person, 3 = Third Person
+        let yaw = 0; // Left/Right rotation
+        let pitch = -0.2; // Up/Down rotation
+        const sensitivity = 0.004;
+        
+        let isRightMouseDown = false;
+        
+        // Movement inputs (range -1 to 1)
+        let inputX = 0; 
+        let inputY = 0;
+        const keys = { w: false, a: false, s: false, d: false };
 
-        document.addEventListener('keydown', (event) => {
-            const key = event.key.toLowerCase();
-            if (keys.hasOwnProperty(key)) keys[key] = true;
-            if (event.code === 'Space') keys.space = true;
-        });
-
-        document.addEventListener('keyup', (event) => {
-            const key = event.key.toLowerCase();
-            if (keys.hasOwnProperty(key)) keys[key] = false;
-            if (event.code === 'Space') keys.space = false;
-        });
-
-        // 6. PHYSICS & MOVEMENT VARIABLES
+        // Physics
         const speed = 0.15;
         let velocityY = 0;
         const gravity = -0.015;
         const jumpStrength = 0.35;
         let isGrounded = true;
 
-        // 7. GAME LOOP
+        // 4. DESKTOP INPUT HANDLING
+        document.addEventListener('keydown', (e) => {
+            if (keys.hasOwnProperty(e.key.toLowerCase())) keys[e.key.toLowerCase()] = true;
+            if (e.code === 'Space' && isGrounded) { velocityY = jumpStrength; isGrounded = false; }
+        });
+        document.addEventListener('keyup', (e) => {
+            if (keys.hasOwnProperty(e.key.toLowerCase())) keys[e.key.toLowerCase()] = false;
+        });
+
+        // Mouse buttons
+        document.addEventListener('mousedown', (e) => {
+            if (e.button === 2) isRightMouseDown = true;
+            // Lock pointer in 1st person if they click the screen
+            if (cameraMode === 1 && e.target === renderer.domElement) document.body.requestPointerLock();
+        });
+        document.addEventListener('mouseup', (e) => {
+            if (e.button === 2) isRightMouseDown = false;
+        });
+
+        // Mouse move (Camera looking)
+        document.addEventListener('mousemove', (e) => {
+            const isPointerLocked = document.pointerLockElement === document.body;
+            
+            // Allow looking if pointer is locked (1st person) OR right-click is held (3rd person)
+            if (isPointerLocked || isRightMouseDown) {
+                yaw -= e.movementX * sensitivity;
+                pitch -= e.movementY * sensitivity;
+                
+                // Clamp pitch so camera doesn't flip upside down
+                pitch = Math.max(-Math.PI/2 + 0.1, Math.min(Math.PI/2 - 0.1, pitch));
+            }
+        });
+
+        // Scroll Wheel to switch cameras
+        document.addEventListener('wheel', (e) => {
+            if (e.deltaY < 0 && cameraMode === 3) {
+                // Scroll UP -> 1st Person
+                cameraMode = 1;
+                document.getElementById('crosshair').style.display = 'block';
+                document.body.requestPointerLock();
+            } else if (e.deltaY > 0 && cameraMode === 1) {
+                // Scroll DOWN -> 3rd Person
+                cameraMode = 3;
+                document.getElementById('crosshair').style.display = 'none';
+                document.exitPointerLock();
+            }
+        });
+
+        // 5. MOBILE TOUCH HANDLING
+        const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+        if (isTouchDevice) {
+            document.getElementById('mobile-ui').style.display = 'block';
+            document.getElementById('info').style.display = 'none'; // Hide desktop instructions
+        }
+
+        const activeTouches = {};
+        let initialPinchDistance = null;
+        
+        // Joystick Elements
+        const joystickZone = document.getElementById('joystick-zone');
+        const joystickKnob = document.getElementById('joystick-knob');
+        let joystickCenter = { x: 0, y: 0 };
+
+        document.addEventListener('touchstart', (e) => {
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                const t = e.changedTouches[i];
+                activeTouches[t.identifier] = { startX: t.clientX, startY: t.clientY, type: 'camera', lastX: t.clientX, lastY: t.clientY };
+
+                if (t.target.id === 'jump-btn') {
+                    if (isGrounded) { velocityY = jumpStrength; isGrounded = false; }
+                    activeTouches[t.identifier].type = 'ui';
+                } 
+                else if (t.target.id === 'joystick-zone' || t.target.id === 'joystick-knob') {
+                    activeTouches[t.identifier].type = 'joystick';
+                    const rect = joystickZone.getBoundingClientRect();
+                    joystickCenter = { x: rect.left + rect.width/2, y: rect.top + rect.height/2 };
+                    updateJoystick(t.clientX, t.clientY);
+                }
+            }
+        }, { passive: false });
+
+        document.addEventListener('touchmove', (e) => {
+            // Detect Pinch to Zoom (Toggle Camera)
+            if (e.touches.length === 2) {
+                const dx = e.touches[0].clientX - e.touches[1].clientX;
+                const dy = e.touches[0].clientY - e.touches[1].clientY;
+                const distance = Math.hypot(dx, dy);
+
+                if (initialPinchDistance === null) {
+                    initialPinchDistance = distance;
+                } else {
+                    const delta = distance - initialPinchDistance;
+                    if (delta > 60 && cameraMode === 3) {
+                        cameraMode = 1; // Pinch out -> 1st Person
+                        document.getElementById('crosshair').style.display = 'block';
+                        initialPinchDistance = distance;
+                    } else if (delta < -60 && cameraMode === 1) {
+                        cameraMode = 3; // Pinch in -> 3rd Person
+                        document.getElementById('crosshair').style.display = 'none';
+                        initialPinchDistance = distance;
+                    }
+                }
+            } else {
+                initialPinchDistance = null;
+            }
+
+            // Process movement for individual touches
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                const t = e.changedTouches[i];
+                const touchData = activeTouches[t.identifier];
+                if (!touchData) continue;
+
+                if (touchData.type === 'joystick') {
+                    updateJoystick(t.clientX, t.clientY);
+                } else if (touchData.type === 'camera' && e.touches.length < 2) {
+                    // Turn camera with finger (only if not pinching)
+                    const dx = t.clientX - touchData.lastX;
+                    const dy = t.clientY - touchData.lastY;
+                    yaw -= dx * sensitivity * 1.5; // Slightly faster on mobile
+                    pitch -= dy * sensitivity * 1.5;
+                    pitch = Math.max(-Math.PI/2 + 0.1, Math.min(Math.PI/2 - 0.1, pitch));
+                    
+                    touchData.lastX = t.clientX;
+                    touchData.lastY = t.clientY;
+                }
+            }
+        }, { passive: false });
+
+        document.addEventListener('touchend', (e) => {
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                const t = e.changedTouches[i];
+                if (activeTouches[t.identifier] && activeTouches[t.identifier].type === 'joystick') {
+                    // Reset Joystick
+                    inputX = 0;
+                    inputY = 0;
+                    joystickKnob.style.transform = `translate(0px, 0px)`;
+                }
+                delete activeTouches[t.identifier];
+            }
+            if (e.touches.length < 2) initialPinchDistance = null;
+        });
+
+        function updateJoystick(clientX, clientY) {
+            const maxRadius = 40; // Max pixels knob can travel
+            let dx = clientX - joystickCenter.x;
+            let dy = clientY - joystickCenter.y;
+            const distance = Math.hypot(dx, dy);
+
+            // Clamp knob to radius bounds
+            if (distance > maxRadius) {
+                dx = (dx / distance) * maxRadius;
+                dy = (dy / distance) * maxRadius;
+            }
+
+            joystickKnob.style.transform = `translate(${dx}px, ${dy}px)`;
+            
+            // Map values to -1.0 to 1.0 range for the game loop
+            inputX = dx / maxRadius;
+            inputY = dy / maxRadius;
+        }
+
+        // 6. MAIN GAME LOOP
         function animate() {
             requestAnimationFrame(animate);
 
-            // --- MOVEMENT ---
-            if (keys.w) player.position.z -= speed;
-            if (keys.s) player.position.z += speed;
-            if (keys.a) player.position.x -= speed;
-            if (keys.d) player.position.x += speed;
+            // --- MOVEMENT MATH ---
+            // Combine Keyboard and Joystick inputs
+            let moveForward = (keys.w ? 1 : 0) - (keys.s ? 1 : 0) - inputY;
+            let moveRight = (keys.d ? 1 : 0) - (keys.a ? 1 : 0) + inputX;
 
-            // --- JUMPING & GRAVITY ---
-            if (keys.space && isGrounded) {
-                velocityY = jumpStrength;
-                isGrounded = false;
+            // Normalize vector so diagonal movement isn't twice as fast
+            const length = Math.hypot(moveRight, moveForward);
+            if (length > 1) {
+                moveRight /= length;
+                moveForward /= length;
             }
 
-            // Apply gravity
-            velocityY += gravity;
-            player.position.y += velocityY;
+            // Calculate directions relative to where the camera is facing (Yaw)
+            const forwardDirX = -Math.sin(yaw);
+            const forwardDirZ = -Math.cos(yaw);
+            const rightDirX = Math.cos(yaw);
+            const rightDirZ = -Math.sin(yaw);
 
-            // Floor collision (Cube is 1 unit tall, so center is at 0.5)
-            if (player.position.y <= 0.5) {
-                player.position.y = 0.5;
-                velocityY = 0;
-                isGrounded = true;
+            player.position.x += (forwardDirX * moveForward + rightDirX * moveRight) * speed;
+            player.position.z += (forwardDirZ * moveForward + rightDirZ * moveRight) * speed;
+
+            // --- GRAVITY & JUMPING ---
+            if (!isGrounded) {
+                velocityY += gravity;
+                player.position.y += velocityY;
+                if (player.position.y <= 0.5) { // Floor collision
+                    player.position.y = 0.5;
+                    velocityY = 0;
+                    isGrounded = true;
+                }
             }
 
-            // --- CAMERA FOLLOW ---
-            // Position the camera behind and slightly above the player
-            camera.position.x = player.position.x;
-            camera.position.y = player.position.y + 3;
-            camera.position.z = player.position.z + 6;
-            
-            // Point the camera at the player
-            camera.lookAt(player.position);
+            // --- CAMERA UPDATES ---
+            // Calculate a 3D vector of where the player is currently looking
+            const lookDirX = -Math.sin(yaw) * Math.cos(pitch);
+            const lookDirY = Math.sin(pitch);
+            const lookDirZ = -Math.cos(yaw) * Math.cos(pitch);
 
-            // Render the scene
+            if (cameraMode === 1) {
+                player.visible = false; // Hide player body so it doesn't block vision
+                camera.position.set(player.position.x, player.position.y + 0.3, player.position.z);
+                
+                // Point camera exactly in front of the player's eyes
+                camera.lookAt(
+                    camera.position.x + lookDirX,
+                    camera.position.y + lookDirY,
+                    camera.position.z + lookDirZ
+                );
+            } else {
+                player.visible = true;
+                const distance = 8;
+                
+                // Position camera behind and above the player based on yaw/pitch
+                camera.position.x = player.position.x - lookDirX * distance;
+                camera.position.y = player.position.y + 1 - lookDirY * distance;
+                camera.position.z = player.position.z - lookDirZ * distance;
+                
+                // Camera stares directly at the player
+                camera.lookAt(player.position.x, player.position.y + 1, player.position.z);
+            }
+
             renderer.render(scene, camera);
         }
 
-        // Handle window resizing
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        // Start the game
         animate();
     </script>
 </body>
