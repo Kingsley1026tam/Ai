@@ -3,31 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lite Math Engine AI</title>
+    <title>Lite Math AI (PWA)</title>
     
-    <script src="https://unpkg.com/mathjs@14.0.1/lib/browser/math.js" defer></script>
+    <script src="https://unpkg.com/mathjs@14.0.1/lib/browser/math.js"></script>
 
     <style>
         :root {
-            --bg-main: #0f172a;
-            --chat-bg: #1e293b;
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-            --bubble-bot: #334155;
-            --bubble-user: #3b82f6;
-            --input-bg: #0f172a;
-            --border-color: #475569;
+            --bg-dark: #0f0f0f; /* YouTube Dark Theme Background */
+            --surface: #212121;
+            --text-main: #f1f1f1;
+            --text-dim: #aaa;
+            --accent-blue: #3ea6ff; /* YouTube Blue */
+            --border: #3d3d3d;
         }
 
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: system-ui, -apple-system, sans-serif;
+            font-family: "Roboto", "Arial", sans-serif;
         }
 
         body {
-            background-color: var(--bg-main);
+            background-color: var(--bg-dark);
             color: var(--text-main);
             display: flex;
             justify-content: center;
@@ -35,250 +33,271 @@
             height: 100vh;
         }
 
-        .container {
+        .app-shell {
             width: 100%;
             max-width: 600px;
-            height: 85vh;
-            background-color: var(--chat-bg);
+            height: 90vh;
+            background-color: var(--surface);
             border-radius: 12px;
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-            border: 1px solid var(--border-color);
+            border: 1px solid var(--border);
+            position: relative;
         }
 
-        .header {
-            padding: 16px;
-            background-color: #1e293b;
-            border-bottom: 1px solid var(--border-color);
+        .top-bar {
+            padding: 18px;
+            background-color: var(--surface);
+            border-bottom: 1px solid var(--border);
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
 
-        .engine-status {
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 0.75rem;
-            font-weight: bold;
-            text-transform: uppercase;
+        .title-group h2 {
+            font-size: 1.15rem;
+            font-weight: 500;
         }
 
-        .status-loading { background-color: #eab308; color: #000; }
-        .status-online { background-color: #22c55e; color: #fff; }
-        .status-fallback { background-color: #ef4444; color: #fff; }
+        .title-group p {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+        }
 
-        .chat-box {
+        .feed-box {
             flex: 1;
             padding: 20px;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 16px;
         }
 
-        .msg {
-            max-width: 85%;
-            padding: 10px 14px;
+        .card {
+            background-color: rgba(255,255,255,0.04);
+            padding: 14px;
             border-radius: 8px;
-            line-height: 1.4;
+            border: 1px solid rgba(255,255,255,0.05);
             font-size: 0.95rem;
+            line-height: 1.5;
         }
 
-        .msg.bot {
-            background-color: var(--bubble-bot);
-            align-self: flex-start;
-        }
-
-        .msg.user {
-            background-color: var(--bubble-user);
+        .card.user {
+            background-color: rgba(62, 166, 255, 0.12);
+            border-color: rgba(62, 166, 255, 0.2);
             align-self: flex-end;
+            max-width: 85%;
         }
 
-        .input-area {
-            padding: 15px;
-            background-color: #1e293b;
-            border-top: 1px solid var(--border-color);
+        .card.bot {
+            align-self: flex-start;
+            max-width: 85%;
+        }
+
+        .action-tray {
+            padding: 16px;
+            background-color: var(--bg-dark);
             display: flex;
-            gap: 10px;
+            gap: 12px;
+            border-top: 1px solid var(--border);
         }
 
         input {
             flex: 1;
-            background-color: var(--input-bg);
-            border: 1px solid var(--border-color);
+            background-color: #121212;
+            border: 1px solid var(--border);
             color: var(--text-main);
-            padding: 12px;
-            border-radius: 6px;
+            padding: 14px;
+            border-radius: 24px;
             outline: none;
-            font-size: 1rem;
+            font-size: 0.95rem;
         }
 
         input:focus {
-            border-color: var(--bubble-user);
+            border-color: var(--accent-blue);
         }
 
         button {
-            background-color: var(--bubble-user);
-            color: white;
+            background-color: var(--accent-blue);
+            color: #0f0f0f;
             border: none;
-            padding: 0 18px;
-            border-radius: 6px;
+            padding: 0 24px;
+            border-radius: 24px;
             cursor: pointer;
             font-weight: 600;
+            font-size: 0.9rem;
         }
 
-        button:hover {
-            opacity: 0.9;
+        /* YouTube-Style Connection Toast Notification */
+        .yt-toast {
+            position: absolute;
+            bottom: 85px;
+            left: 50%;
+            transform: translateX(-50%) translateY(150%);
+            background-color: #212121;
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            transition: transform 0.3s ease, background-color 0.3s;
+            z-index: 1000;
+            pointer-events: none;
+            white-space: nowrap;
+            border: 1px solid #333;
+        }
+
+        .yt-toast.show {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .yt-toast.offline {
+            background-color: #1f1f1f;
+            color: #aaa;
+        }
+
+        .yt-toast.online {
+            background-color: #2b5e3b;
+            color: #fff;
         }
 
         code {
-            background: rgba(0,0,0,0.2);
+            font-family: monospace;
+            background: rgba(255,255,255,0.1);
             padding: 2px 4px;
             border-radius: 4px;
-            font-family: monospace;
-            color: #f43f5e;
+            color: #ff8888;
         }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <div class="header">
-            <div>
-                <h3 style="margin-bottom: 2px;">Resilient Math AI</h3>
-                <p style="font-size: 0.75rem; color: var(--text-muted);">Hybrid Offline Architecture</p>
-            </div>
-            <div id="statusBadge" class="engine-status status-loading">Connecting...</div>
-        </div>
-
-        <div class="chat-box" id="chatBox">
-            <div class="msg bot">
-                <strong>System Ready.</strong><br>
-                If this is your first time loading the application, keep Wi-Fi connected for a few seconds to let the background scripts initialize. Afterwards, you can go completely offline!
+    <div class="app-shell">
+        <div class="top-bar">
+            <div class="title-group">
+                <h2>Math AI Neural Engine</h2>
+                <p id="networkStatus">Checking system state...</p>
             </div>
         </div>
 
-        <div class="input-area">
-            <input type="text" id="userIn" placeholder="Type an expression... (e.g., 2x + 10 = 30 or sqrt(144))" autocomplete="off">
-            <button id="sendBtn">Run</button>
+        <div class="feed-box" id="feedBox">
+            <div class="card bot">
+                <strong>Local Math Node Online.</strong><br>
+                First initialization successful. Your browser has cached this application's assets. You may safely turn off your internet adapter now.
+            </div>
         </div>
+
+        <div class="action-tray">
+            <input type="text" id="mathInput" placeholder="Enter math statement (e.g., solve 3x + 5 = 20)" autocomplete="off">
+            <button id="calcBtn">Run</button>
+        </div>
+
+        <div id="ytToast" class="yt-toast">No internet connection</div>
     </div>
 
     <script>
-        const chatBox = document.getElementById('chatBox');
-        const userIn = document.getElementById('userIn');
-        const sendBtn = document.getElementById('sendBtn');
-        const statusBadge = document.getElementById('statusBadge');
+        const feedBox = document.getElementById('feedBox');
+        const mathInput = document.getElementById('mathInput');
+        const calcBtn = document.getElementById('calcBtn');
+        const networkStatus = document.getElementById('networkStatus');
+        const ytToast = document.getElementById('ytToast');
 
-        // Check Engine Initialization Status
-        window.addEventListener('load', () => {
+        // Service Worker Lifecycle Registration (Enables YouTube-style standalone loading)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('Service Worker Active Control established:', reg.scope))
+                    .catch(err => console.error('Service Worker Registration Intercept Error:', err));
+            });
+        }
+
+        // Live Connection Status Observers (YouTube Replication)
+        function updateConnectionState() {
+            if (navigator.onLine) {
+                networkStatus.textContent = "Synced with Cloud Engine (Offline Mode Ready)";
+                networkStatus.style.color = "#22c55e";
+                
+                // Show "Back Online" Toast transiently
+                ytToast.textContent = "Back online";
+                ytToast.className = "yt-toast show online";
+                setTimeout(() => { ytToast.classList.remove('show'); }, 3000);
+            } else {
+                networkStatus.textContent = "Offline Mode Active";
+                networkStatus.style.color = "#ea580c";
+                
+                // Show "No Connection" Toast persistently
+                ytToast.textContent = "No internet connection";
+                ytToast.className = "yt-toast show offline";
+            }
+        }
+
+        window.addEventListener('online', updateConnectionState);
+        window.addEventListener('offline', updateConnectionState);
+        updateConnectionState(); // Initial run state verification
+
+        // Math Execution Handler
+        calcBtn.addEventListener('click', handleCalculation);
+        mathInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') handleCalculation(); });
+
+        function handleCalculation() {
+            const rawText = mathInput.value.trim();
+            if (!rawText) return;
+
+            appendCard(rawText, 'user');
+            mathInput.value = '';
+
+            // Engine parsing evaluation
             setTimeout(() => {
-                if (typeof math !== 'undefined') {
-                    statusBadge.textContent = "Offline AI Loaded";
-                    statusBadge.className = "engine-status status-online";
-                } else {
-                    statusBadge.textContent = "Local Core (No Wifi)";
-                    statusBadge.className = "engine-status status-fallback";
-                    appendLog("Notice: Advanced Engine CDN didn't resolve. Running native offline math matrix parser instead.", 'bot');
-                }
-            }, 1000);
-        });
-
-        sendBtn.addEventListener('click', executeMessage);
-        userIn.addEventListener('keypress', (e) => { if (e.key === 'Enter') executeMessage(); });
-
-        function executeMessage() {
-            const query = userIn.value.trim();
-            if (!query) return;
-
-            appendLog(query, 'user');
-            userIn.value = '';
-
-            const reply = parseAndEvaluate(query);
-            setTimeout(() => { appendLog(reply, 'bot'); }, 150);
+                const solution = runLocalMathEngine(rawText);
+                appendCard(solution, 'bot');
+            }, 100);
         }
 
-        function appendLog(text, sender) {
-            const bubble = document.createElement('div');
-            bubble.classList.add('msg', sender);
-            bubble.innerHTML = text.replace(/\n/g, '<br>');
-            chatBox.appendChild(bubble);
-            chatBox.scrollTop = chatBox.scrollHeight;
+        function appendCard(text, sender) {
+            const card = document.createElement('div');
+            card.classList.add('card', sender);
+            card.innerHTML = text.replace(/\n/g, '<br>');
+            feedBox.appendChild(card);
+            feedBox.scrollTop = feedBox.scrollHeight;
         }
 
-        function parseAndEvaluate(rawInput) {
-            // Standardizing common verbal variations into mathematical symbols
-            let clean = rawInput.toLowerCase()
-                                .replace(/what is|calculate|solve for|find/g, '')
-                                .replace(/plus/g, '+')
-                                .replace(/minus/g, '-')
-                                .replace(/times|multiplied by/g, '*')
-                                .replace(/divided by/g, '/')
-                                .trim();
+        function runLocalMathEngine(inputStr) {
+            let parsed = inputStr.toLowerCase()
+                                 .replace(/what is|compute|solve/g, '')
+                                 .replace(/plus/g, '+').replace(/minus/g, '-')
+                                 .replace(/times/g, '*').replace(/divided by/g, '/')
+                                 .trim();
 
-            const isMathJSLive = (typeof math !== 'undefined');
-
-            // --- STRATEGY A: LIGHTWEIGHT NATIVE RUNTIME (NO WIFI FALLBACK) ---
-            if (!isMathJSLive) {
-                try {
-                    // Strips out any dangerous code injections, keeping arithmetic syntax safely intact
-                    let safeExpression = clean.replace(/[^0-9+\-*/().\s^]/g, '').replace(/\^/g, '**');
-                    if (!safeExpression) return "Input structure unreadable by local kernel. Connect once to internet to fetch comprehensive engine assets.";
-                    
-                    let mathCalculation = Function(`"use strict"; return (${safeExpression})`)();
-                    return `[Local Base Core] Result:<br><strong>${mathCalculation}</strong>`;
-                } catch (err) {
-                    return "Syntax expression anomaly. Tip: Enter clear arithmetic statements like <code>(45 * 2) / 5</code>.";
-                }
+            if (typeof math === 'undefined') {
+                return "Error: The math engine core library has not finished local device compilation yet.";
             }
 
-            // --- STRATEGY B: ADVANCED EXTENDED ENGINE (POST-WIFI CACHED) ---
             try {
-                // Algebraic Parsing Block
-                if (clean.includes('=')) {
-                    let segments = clean.split('=');
-                    let left = segments[0].trim();
-                    let right = segments[1].trim();
-
-                    // Strip mathematical terminology functions out to correctly find standalone variables
-                    let variableFilter = clean.replace(/sin|cos|tan|log|sqrt|pi|e/g, '');
-                    let variableMatch = variableFilter.match(/[a-z]/);
-
+                // Handling Basic Algebraic Equations
+                if (parsed.includes('=')) {
+                    let parts = parsed.split('=');
+                    let variableMatch = parsed.replace(/sin|cos|tan|log|sqrt/g, '').match(/[a-z]/);
                     if (!variableMatch) {
-                        let equalityCheck = math.evaluate(`${left} == ${right}`);
-                        return `Equation Condition: <strong>${equalityCheck}</strong>`;
+                        return `Equality Matrix State: <strong>${math.evaluate(`${parts[0]} == ${parts[1]}`)}</strong>`;
                     }
-
-                    let targetVariable = variableMatch[0];
-                    let centralizedEquation = `(${left}) - (${right})`;
                     
-                    // Automatically adds missing multiplication tokens (e.g. 5x converts to 5*x)
-                    centralizedEquation = centralizedEquation.replace(/(\d)([a-z\(])/g, '$1*$2');
-
-                    // Advanced matrix approach: evaluating linear points to trace interception roots
-                    let contextZero = {}; contextZero[targetVariable] = 0;
-                    let contextOne = {}; contextOne[targetVariable] = 1;
-
-                    let evaluationZero = math.evaluate(centralizedEquation, contextZero);
-                    let evaluationOne = math.evaluate(centralizedEquation, contextOne);
-
-                    let rateOfChange = evaluationOne - evaluationZero;
-                    if (rateOfChange === 0) return "The algebraic expression does not contain a linear independent variable result.";
-
-                    let finalAlgebraicRoot = -evaluationZero / rateOfChange;
-                    return `Algebra Root Extracted:<br><strong>${targetVariable} = ${finalAlgebraicRoot}</strong>`;
-                } 
-                
-                // Pure Arithmetic Expression Evaluation
-                else {
-                    let structuredExpression = clean.replace(/(\d)([a-z\(])/g, '$1*$2');
-                    let processingOutput = math.evaluate(structuredExpression);
-                    return `Evaluated Processing Result:<br><strong>${processingOutput}</strong>`;
+                    let v = variableMatch[0];
+                    let expressions = `(${parts[0]}) - (${parts[1]})`.replace(/(\d)([a-z\(])/g, '$1*$2');
+                    
+                    let r0 = math.evaluate(expressions, { [v]: 0 });
+                    let r1 = math.evaluate(expressions, { [v]: 1 });
+                    let variance = r1 - r0;
+                    
+                    if (variance === 0) return "Equation resolve structure evaluation returned flat / non-linear.";
+                    return `Algebra Resolution:<br><strong>${v} = ${-r0 / variance}</strong>`;
                 }
-            } catch (runtimeException) {
-                return `Engine processing exception: ${runtimeException.message}. Please simplify your input terms.`;
+
+                // Handling Basic/Advanced Functions Arithmetic
+                let sanitizedExpression = parsed.replace(/(\d)([a-z\(])/g, '$1*$2');
+                return `Calculated Value:<br><strong>${math.evaluate(sanitizedExpression)}</strong>`;
+            } catch (err) {
+                return "Syntax input variation unrecognizable. Format example: <code>sqrt(225) + 5</code> or <code>4x - 12 = 24</code>.";
             }
         }
     </script>
